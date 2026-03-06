@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Picks Prime - Trade Feedback</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --bg-color: #131722;
+            --text-color: #c9d1d9;
+            --input-bg: #1e2030;
+            --border-color: #444;
+            --accent-green: #26a69a;
+            --accent-red: #ef5350;
+            --accent-gold: #ffd700;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: var(--accent-gold);
+            font-size: 24px;
+            margin: 0 0 10px 0;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .header p {
+            font-size: 14px;
+            color: #8b949e;
+            margin: 0;
+        }
+
+        .form-container {
+            width: 100%;
+            max-width: 400px;
+            background-color: var(--input-bg);
+            border-radius: 12px;
+            padding: 24px;
+            box-sizing: border-box;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-color);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #e6edf3;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 12px;
+            background-color: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: white;
+            font-size: 16px;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--accent-gold);
+        }
+
+        .result-toggle {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            background-color: rgba(0, 0, 0, 0.2);
+            color: var(--text-color);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .toggle-btn.win.active {
+            background-color: rgba(38, 166, 154, 0.2);
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+
+        .toggle-btn.loss.active {
+            background-color: rgba(239, 83, 80, 0.2);
+            border-color: var(--accent-red);
+            color: var(--accent-red);
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            background-color: var(--accent-gold);
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: background-color 0.2s;
+        }
+
+        .submit-btn:hover {
+            background-color: #e6c200;
+        }
+
+        /* Hide number arrows */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>SMART PICKS PRIME</h1>
+        <p>ODIN Crowd Intelligence Data Intake</p>
+    </div>
+
+    <div class="form-container">
+        <div class="form-group">
+            <label for="pair">Asset Pair</label>
+            <input type="text" id="pair" placeholder="e.g., BTC/USD" style="text-transform: uppercase;">
+        </div>
+
+        <div class="form-group">
+            <label for="entry">Your Entry Price ($)</label>
+            <input type="number" id="entry" step="any" placeholder="e.g., 67450.50">
+        </div>
+
+        <div class="form-group">
+            <label for="exit">Your Exit Price ($)</label>
+            <input type="number" id="exit" step="any" placeholder="e.g., 68100.00">
+        </div>
+
+        <div class="form-group">
+            <label>Trade Result</label>
+            <div class="result-toggle">
+                <button type="button" class="toggle-btn win" onclick="setResult('WIN')">WIN</button>
+                <button type="button" class="toggle-btn loss" onclick="setResult('LOSS')">LOSS</button>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="pnl">Net PnL / ROI (%)</label>
+            <input type="number" id="pnl" step="any" placeholder="e.g., 45.2">
+        </div>
+
+        <button class="submit-btn" onclick="submitToOdin()">Submit to ODIN</button>
+    </div>
+
+    <script>
+        let currentResult = '';
+        const tg = window.Telegram.WebApp;
+
+        // Initialize Telegram Web App
+        tg.expand(); 
+        
+        // Theme matching if user has light/dark mode in Telegram
+        if (tg.colorScheme === 'light') {
+            document.documentElement.style.setProperty('--bg-color', '#ffffff');
+            document.documentElement.style.setProperty('--input-bg', '#f0f2f5');
+            document.documentElement.style.setProperty('--text-color', '#1c1e21');
+            document.documentElement.style.setProperty('--border-color', '#ccd0d5');
+            document.body.style.color = '#1c1e21';
+        }
+
+        function setResult(res) {
+            currentResult = res;
+            document.querySelector('.toggle-btn.win').classList.remove('active');
+            document.querySelector('.toggle-btn.loss').classList.remove('active');
+            
+            if (res === 'WIN') {
+                document.querySelector('.toggle-btn.win').classList.add('active');
+            } else {
+                document.querySelector('.toggle-btn.loss').classList.add('active');
+            }
+        }
+
+        function submitToOdin() {
+            const pair = document.getElementById('pair').value.toUpperCase();
+            const entry = document.getElementById('entry').value;
+            const exit = document.getElementById('exit').value;
+            const pnl = document.getElementById('pnl').value;
+
+            if (!pair || !entry || !exit || !currentResult) {
+                tg.showAlert("Please fill in all required fields (Pair, Entry, Exit, Result).");
+                return;
+            }
+
+            // Create JSON payload for ODIN
+            const data = {
+                action: "crowd_feedback",
+                pair: pair,
+                entry: parseFloat(entry),
+                exit: parseFloat(exit),
+                result: currentResult,
+                pnl_pct: pnl ? parseFloat(pnl) : 0,
+                user_id: tg.initDataUnsafe?.user?.id || "unknown",
+                username: tg.initDataUnsafe?.user?.username || "unknown"
+            };
+
+            // Send data silently back to the Bot
+            tg.sendData(JSON.stringify(data));
+            
+            // Close the web app window
+            tg.close();
+        }
+    </script>
+</body>
+</html>
